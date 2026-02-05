@@ -11,7 +11,7 @@ OUTPUT_CSV = "messy_data.csv"
 
 MESSINESS_LEVEL = 0.15  # 0.0 = clean, 0.3 = very messy
 
-MISSING_TOKENS = ["?", "None", "", "NA"]
+MISSING_TOKENS = ["?", "None", np.nan, "NA"]
 YES_NO_VARIANTS = ["Yes", "YES", "yes", "No", "NO", "no"]
 DRUG_STATES = ["No", "Steady", "Up", "Down", "NO", "steady"]
 
@@ -22,7 +22,7 @@ def random_typo(value):
     if not isinstance(value, str) or len(value) < 3:
         return value
     i = random.randint(0, len(value) - 2)
-    return value[:i] + value[i+1] + value[i] + value[i+2:]
+    return value[:i] + value[i + 1] + value[i] + value[i + 2:]
 
 def maybe_missing(value):
     if random.random() < MESSINESS_LEVEL:
@@ -34,7 +34,7 @@ def corrupt_numeric(value):
         return value
     r = random.random()
     if r < 0.33:
-        return str(value)  # numeric as string
+        return str(value)          # numeric as string
     elif r < 0.66:
         return value * random.choice([10, -1])  # outlier
     else:
@@ -56,6 +56,9 @@ def corrupt_diag(code):
 # -----------------------------
 df = pd.read_csv(INPUT_CSV)
 
+# FORCE everything to object so corruption is always legal
+df = df.astype("object")
+
 # -----------------------------
 # Column groups
 # -----------------------------
@@ -66,7 +69,6 @@ numeric_cols = [
 ]
 
 diag_cols = ["diag_1", "diag_2", "diag_3"]
-
 yes_no_cols = ["diabetesMed", "change"]
 
 drug_cols = [
@@ -75,13 +77,26 @@ drug_cols = [
     "rosiglitazone", "insulin"
 ]
 
-categorical_cols = df.select_dtypes(include="object").columns
+categorical_cols = df.select_dtypes(include=["object", "string"]).columns
+
+# -----------------------------
+# 🔑 CRITICAL FIX
+# Allow numeric columns to hold messy values
+# -----------------------------
+df[numeric_cols] = df[numeric_cols].astype("object")
 
 # -----------------------------
 # Apply messiness
 # -----------------------------
+total_ops = len(df) * len(df.columns)
+op_count = 0
+
 for col in df.columns:
     for i in range(len(df)):
+        if op_count % 10_000 == 0:
+            print(f"{op_count / total_ops:.1%} complete")
+        op_count += 1
+
         value = df.at[i, col]
 
         # Random missingness
@@ -102,10 +117,7 @@ for col in df.columns:
 
         elif col in categorical_cols and random.random() < MESSINESS_LEVEL:
             if isinstance(value, str):
-                if random.random() < 0.5:
-                    value = value.lower()
-                else:
-                    value = random_typo(value)
+                value = value.lower() if random.random() < 0.5 else random_typo(value)
 
         df.at[i, col] = value
 
@@ -125,5 +137,4 @@ df = df.sample(frac=1).reset_index(drop=True)
 # Save messy data
 # -----------------------------
 df.to_csv(OUTPUT_CSV, index=False)
-
 print(f"Messy dataset saved to {OUTPUT_CSV}")
