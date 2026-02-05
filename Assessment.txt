@@ -1,0 +1,39 @@
+Data
+    https://www.kaggle.com/datasets/brandao/diabetes?select=diabetic_data.csv
+
+Raw Data / Visualisation
+    Missing Values
+    Duplication
+    Error Data
+        Graphs
+        Tables
+        Values
+
+Cleaning
+    Fill in Missing
+        Context Aware Values
+    Remove Duplicate Data
+
+Data Exploration
+    EDA
+    Find patterns
+    Make Charts
+    Find Correlation
+    Patterns
+
+Modeling
+    Pick 3 + more
+        Compare
+        Evaluate
+        pros
+        cons
+
+Visualisation
+    Clusters
+    Visual Pattern
+    Histograms
+
+Insights
+    Talk about:
+        patterns
+        Techniques

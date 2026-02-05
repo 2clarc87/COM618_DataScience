@@ -6,8 +6,8 @@ import string
 # -----------------------------
 # Configuration
 # -----------------------------
-INPUT_CSV = "clean_data.csv"
-OUTPUT_CSV = "messy_data.csv"
+INPUT_CSV = "data/clean_data.csv"
+OUTPUT_CSV = "data/messy_data.csv"
 
 MESSINESS_LEVEL = 0.15  # 0.0 = clean, 0.3 = very messy
 
@@ -103,13 +103,13 @@ for col in df.columns:
         value = maybe_missing(value)
 
         # Column-specific corruption
-        if col in numeric_cols and random.random() < MESSINESS_LEVEL:
-            value = corrupt_numeric(value)
+        # if col in numeric_cols and random.random() < MESSINESS_LEVEL:
+        #     value = corrupt_numeric(value)
+        #
+        # elif col in diag_cols:
+        #     value = corrupt_diag(value)
 
-        elif col in diag_cols:
-            value = corrupt_diag(value)
-
-        elif col in yes_no_cols and random.random() < MESSINESS_LEVEL:
+        if col in yes_no_cols and random.random() < MESSINESS_LEVEL:
             value = random.choice(YES_NO_VARIANTS)
 
         elif col in drug_cols and random.random() < MESSINESS_LEVEL:
@@ -117,7 +117,7 @@ for col in df.columns:
 
         elif col in categorical_cols and random.random() < MESSINESS_LEVEL:
             if isinstance(value, str):
-                value = value.lower() if random.random() < 0.5 else random_typo(value)
+                value = value.lower() if random.random() < 0.5 else value#random_typo(value)
 
         df.at[i, col] = value
 

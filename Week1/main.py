@@ -371,7 +371,7 @@ def main():
     # --------------------------------------------------------
     # Save cleaned dataset
     # --------------------------------------------------------
-    output_path = "../data/cleaned_heart_disease.csv"
+    output_path = "cleaned_heart_disease.csv"
     df_clean.to_csv(output_path, index=False)
     print(f"\nCleaned dataset saved successfully to: {output_path}")
 
