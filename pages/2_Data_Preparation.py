@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-from app_core.data_quality import clean_data_context_aware, missing_summary
+from app_core.data_quality import apply_stroke_preprocessing
 
 st.title("Data Preparation")
 
@@ -11,24 +11,25 @@ if "uploaded_data" not in st.session_state:
 
 raw_df = st.session_state["uploaded_data"]
 
-cleaned_df, fill_map = clean_data_context_aware(raw_df)
+cleaned_df = apply_stroke_preprocessing(raw_df)
 st.session_state["cleaned_data"] = cleaned_df
 
-fill_table = pd.DataFrame(
-    [
-        {
-            "Column": col,
-            "Strategy": details["strategy"],
-            "Value Used": details["value"],
-        }
-        for col, details in fill_map.items()
-    ]
+preprocess_steps = pd.DataFrame(
+    {
+        "Step": [
+            "Drop id",
+            "Drop missing bmi rows",
+            "Binary encode gender",
+            "Binary encode ever_married",
+            "Binary encode Residence_type",
+            "One-hot encode work_type (drop_first=True)",
+            "One-hot encode smoking_status (drop_first=True)",
+        ]
+    }
 )
 
-st.subheader("Column Averages")
-st.dataframe(fill_table)
-
-st.write("Fill in missing value with averages")
+st.subheader("Applied Preprocessing Steps")
+st.dataframe(preprocess_steps, use_container_width=True)
 
 st.subheader("Cleaned Data")
 st.dataframe(cleaned_df)
