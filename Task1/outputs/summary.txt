@@ -1,0 +1,6 @@
+Rows: 5110
+Columns: 12
+Stroke prevalence: 4.87%
+Mean age (stroke=1): 67.73
+Mean age (stroke=0): 41.97
+Missing BMI values: 0
