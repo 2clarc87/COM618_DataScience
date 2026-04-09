@@ -93,6 +93,11 @@ def apply_stroke_preprocessing(df):
             preprocessed,
             columns=one_hot_columns,
             drop_first=True,
+            dtype=int,
         )
+
+    bool_columns = preprocessed.select_dtypes(include="bool").columns
+    if len(bool_columns) > 0:
+        preprocessed[bool_columns] = preprocessed[bool_columns].astype(int)
 
     return preprocessed
