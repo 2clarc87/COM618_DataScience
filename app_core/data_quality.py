@@ -33,23 +33,42 @@ def duplicate_summary(df: pd.DataFrame) -> Tuple[int, pd.DataFrame]:
 def stroke_dataset_error_checks(df: pd.DataFrame) -> Dict[str, pd.DataFrame]:
     checks = {}
 
+    expected_numeric_columns = [
+        "id",
+        "age",
+        "hypertension",
+        "heart_disease",
+        "avg_glucose_level",
+        "bmi",
+        "stroke",
+    ]
+    for col in expected_numeric_columns:
+        if col in df.columns:
+            converted = pd.to_numeric(df[col], errors="coerce")
+            invalid_numeric_mask = df[col].notna() & converted.isna()
+            checks[f"Non-numeric values in expected numeric column: {col}"] = df[invalid_numeric_mask]
+
     if "age" in df.columns:
-        checks["Age outside 0-120"] = df[(df["age"].notna()) & ((df["age"] < 0) | (df["age"] > 120))]
+        age_numeric = pd.to_numeric(df["age"], errors="coerce")
+        checks["Age outside 0-120"] = df[(age_numeric.notna()) & ((age_numeric < 0) | (age_numeric > 120))]
 
     if "bmi" in df.columns:
-        checks["BMI outside 10-80"] = df[(df["bmi"].notna()) & ((df["bmi"] < 10) | (df["bmi"] > 80))]
+        bmi_numeric = pd.to_numeric(df["bmi"], errors="coerce")
+        checks["BMI outside 10-80"] = df[(bmi_numeric.notna()) & ((bmi_numeric < 10) | (bmi_numeric > 80))]
 
     if "avg_glucose_level" in df.columns:
+        glucose_numeric = pd.to_numeric(df["avg_glucose_level"], errors="coerce")
         checks["Glucose outside 40-400"] = df[
-            (df["avg_glucose_level"].notna())
-            & ((df["avg_glucose_level"] < 40) | (df["avg_glucose_level"] > 400))
+            (glucose_numeric.notna())
+            & ((glucose_numeric < 40) | (glucose_numeric > 400))
         ]
 
     binary_cols = ["hypertension", "heart_disease", "stroke"]
     for col in binary_cols:
         if col in df.columns:
+            converted = pd.to_numeric(df[col], errors="coerce")
             checks[f"Invalid values in {col} (expected 0/1)"] = df[
-                (df[col].notna()) & (~df[col].isin([0, 1]))
+                (converted.notna()) & (~converted.isin([0, 1]))
             ]
 
     allowed_categories = {
@@ -74,6 +93,11 @@ def generic_error_checks(df: pd.DataFrame) -> Dict[str, pd.DataFrame]:
     numeric_like_columns: List[str] = []
 
     for col in df.columns:
+        non_null_series = df[col].dropna()
+        observed_types = non_null_series.map(type).unique()
+        if len(observed_types) > 1:
+            checks[f"Mixed data types in column: {col}"] = df[df[col].notna()]
+
         converted = pd.to_numeric(df[col], errors="coerce")
         if converted.notna().sum() >= (0.8 * len(df)):
             numeric_like_columns.append(col)
