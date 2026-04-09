@@ -111,10 +111,8 @@ except FileNotFoundError:
 source = "Uploaded CSV" if "uploaded_data" in st.session_state else f"Default: {DEFAULT_DATASET}"
 st.caption(f"Data source: {source}")
 
-section = st.selectbox("Choose section", ["Missing Values", "Duplication", "Error Data"])
-if section == "Missing Values":
-    render_missing_values(data)
-elif section == "Duplication":
-    render_duplicates(data)
-else:
-    render_error_data(data)
+render_missing_values(data)
+st.divider()
+render_duplicates(data)
+st.divider()
+render_error_data(data)

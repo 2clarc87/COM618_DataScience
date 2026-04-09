@@ -6,7 +6,7 @@ from app_core.data_quality import DEFAULT_DATASET, load_data
 st.set_page_config(page_title="Data Quality Dashboard", layout="wide")
 
 st.title("Data Science Project: Data Quality Dashboard")
-st.write("Upload a CSV here. The pages in the sidebar will automatically use it.")
+st.write("Upload a CSV here. The Visualisation page in the sidebar will automatically use it.")
 
 uploaded = st.file_uploader("Upload CSV", type=["csv"])
 
@@ -14,7 +14,7 @@ if uploaded is not None:
     try:
         data = load_data(file_buffer=uploaded)
         st.session_state["uploaded_data"] = data
-        st.success("Uploaded file loaded successfully. Open a page from the sidebar.")
+        st.success("Uploaded file loaded successfully. Open the Visualisation page from the sidebar.")
         st.write(f"Rows: {data.shape[0]} | Columns: {data.shape[1]}")
     except Exception as exc:
         st.error(f"Could not read uploaded CSV: {exc}")
