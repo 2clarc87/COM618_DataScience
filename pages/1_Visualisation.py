@@ -3,24 +3,11 @@ import pandas as pd
 import streamlit as st
 
 from app_core.data_quality import (
-    DEFAULT_DATASET,
     duplicate_summary,
     generic_error_checks,
-    load_data,
     missing_summary,
     stroke_dataset_error_checks,
 )
-
-
-@st.cache_data
-def load_default_data() -> pd.DataFrame:
-    return load_data(default_path=DEFAULT_DATASET)
-
-
-def resolve_data() -> pd.DataFrame:
-    if "uploaded_data" in st.session_state:
-        return st.session_state["uploaded_data"]
-    return load_default_data()
 
 
 def render_missing_values(df: pd.DataFrame) -> None:
@@ -102,14 +89,12 @@ def render_error_data(df: pd.DataFrame) -> None:
 
 st.title("Visualisation")
 
-try:
-    data = resolve_data()
-except FileNotFoundError:
-    st.error(f"Default dataset '{DEFAULT_DATASET}' not found. Please upload from Home page.")
+if "uploaded_data" not in st.session_state:
+    st.info("Upload a CSV file on the Home page to view visualisations.")
     st.stop()
 
-source = "Uploaded CSV" if "uploaded_data" in st.session_state else f"Default: {DEFAULT_DATASET}"
-st.caption(f"Data source: {source}")
+data = st.session_state["uploaded_data"]
+st.caption("Data source: Uploaded CSV")
 
 render_missing_values(data)
 st.divider()
