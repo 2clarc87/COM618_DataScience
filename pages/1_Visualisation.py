@@ -10,34 +10,30 @@ def render_missing_values(df):
     st.subheader("Missing Values")
     summary = missing_summary(df)
 
-    fig, ax = plt.subplots(figsize=(10, 4))
-    summary["Missing Count"].plot(kind="bar", ax=ax)
-    ax.set_title("Missing Values by Column")
-    ax.set_ylabel("Missing Count")
-    ax.set_xlabel("Columns")
-    plt.xticks(rotation=45, ha="right")
-    st.pyplot(fig)
-    st.dataframe(summary)
+    col1, col2 = st.columns(2)
+
+    fig = px.bar(summary, y="Missing Count", title="Missing Values by Column",
+                 labels={"index": "Columns"})
+    col1.plotly_chart(fig, use_container_width=True)
+    col2.dataframe(summary)
 
 
 def render_duplicates(df):
     st.subheader("Duplication")
     duplicate_count, duplicate_rows = duplicate_summary(df)
     st.metric("Duplicate Rows", duplicate_count)
-    st.dataframe(duplicate_rows)
 
 
 def render_column_insights(df):
     st.subheader("Column Insights")
+    col1, col2 = st.columns(2)
 
-    unique_counts = df.nunique(dropna=True).sort_values(ascending=False)
-    fig, ax = plt.subplots(figsize=(10, 4))
-    unique_counts.plot(kind="bar", ax=ax)
-    ax.set_title("Number of Unique Values by Column")
-    ax.set_ylabel("Unique Count")
-    ax.set_xlabel("Columns")
-    plt.xticks(rotation=45, ha="right")
-    st.pyplot(fig)
+    unique_counts = df.nunique(dropna=True).sort_values(ascending=False).reset_index()
+    unique_counts.columns = ["Column", "Unique Count"]
+
+    fig = px.bar(unique_counts, x="Column", y="Unique Count",
+                 title="Number of Unique Values by Column")
+    col1.plotly_chart(fig, use_container_width=True)
 
     summary_rows = []
     for col in df.columns:
@@ -57,28 +53,13 @@ def render_column_insights(df):
             }
         )
 
-    st.dataframe(pd.DataFrame(summary_rows))
+    col2.dataframe(pd.DataFrame(summary_rows))
 
 
 def render_graphs(df, cols):
-    st.subheader("Graphs")
+    st.subheader("Columns")
 
     col1, col2 = st.columns(2)
-
-    if "Label" in df.columns:
-        col1.text("Label Counts")
-        col1.bar_chart(df["Label"].value_counts())
-    else:
-        col1.info("`Label` column not found, so label counts are unavailable.")
-
-    numeric_df = df[cols].select_dtypes(include="number")
-    col2.text("Correlation Matrix")
-    if numeric_df.empty:
-        col2.info("No numeric columns available for correlation matrix.")
-    else:
-        corr = numeric_df.corr()
-        fig_corr = px.imshow(corr, text_auto=True, color_continuous_scale="Blues")
-        col2.plotly_chart(fig_corr, use_container_width=True)
 
     for i, col in enumerate(cols):
         fig = px.histogram(df, x=col, nbins=40, title=f"Distribution: {col}")
@@ -86,6 +67,16 @@ def render_graphs(df, cols):
             col1.plotly_chart(fig, use_container_width=True)
         else:
             col2.plotly_chart(fig, use_container_width=True)
+
+def render_correlation_matrix(df, cols):
+    numeric_df = df[cols].select_dtypes(include="number")
+    st.subheader("Correlation Matrix")
+    if numeric_df.empty:
+        st.info("No numeric columns available for correlation matrix.")
+    else:
+        corr = numeric_df.corr()
+        fig_corr = px.imshow(corr, text_auto=True, color_continuous_scale="Blues")
+        st.plotly_chart(fig_corr, use_container_width=True)
 
 
 # -----------------------------------------------------------------------------
@@ -120,3 +111,5 @@ if session_df is None or session_cols is None:
     st.stop()
 
 render_graphs(session_df, session_cols)
+st.divider()
+render_correlation_matrix(data, session_cols)
