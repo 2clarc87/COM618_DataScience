@@ -6,7 +6,7 @@ st.set_page_config(page_title="Health Care Data Science", layout="wide")
 
 st.title("Health Care Data Science")
 
-uploaded = st.file_uploader("Upload CSV", type=["csv"])
+uploaded = st.file_uploader(type=["csv"])
 
 if uploaded is not None:
     try:
