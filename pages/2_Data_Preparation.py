@@ -11,15 +11,6 @@ if "uploaded_data" not in st.session_state:
 
 raw_df = st.session_state["uploaded_data"]
 
-st.subheader("Before Cleaning")
-col1, col2 = st.columns(2)
-missing_before = int(raw_df.isna().sum().sum())
-
-col1.metric("Rows", raw_df.shape[0])
-col2.metric("Missing Cells", missing_before)
-
-st.dataframe(missing_summary(raw_df))
-
 cleaned_df, fill_map = clean_data_context_aware(raw_df)
 st.session_state["cleaned_data"] = cleaned_df
 
@@ -34,16 +25,10 @@ fill_table = pd.DataFrame(
     ]
 )
 
-st.subheader("Cleaning Applied")
+st.subheader("Column Averages")
 st.dataframe(fill_table)
 
-st.subheader("After Cleaning")
-col4, col5 = st.columns(2)
-missing_after = int(cleaned_df.isna().sum().sum())
-
-col4.metric("Rows", cleaned_df.shape[0])
-col5.metric("Missing Cells", missing_after)
-st.dataframe(missing_summary(cleaned_df))
+st.write("Fill in missing value with averages")
 
 st.subheader("Cleaned Data")
 st.dataframe(cleaned_df)

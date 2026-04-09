@@ -6,11 +6,9 @@ MISSING_MARKERS = ["", " ", "NA", "N/A", "na", "n/a", "null", "NULL", "?", "Unkn
 
 
 def load_data(file_buffer=None, default_path=None):
-    if file_buffer is not None:
+    if file_buffer is not None or default_path is None :
         content = file_buffer.getvalue()
         return pd.read_csv(io.BytesIO(content), na_values=MISSING_MARKERS)
-    if default_path is None:
-        raise ValueError("Either file_buffer or default_path must be provided.")
     return pd.read_csv(default_path, na_values=MISSING_MARKERS)
 
 
