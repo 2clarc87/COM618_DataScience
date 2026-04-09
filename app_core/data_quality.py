@@ -4,7 +4,7 @@ from typing import Dict, List, Tuple
 import pandas as pd
 
 DEFAULT_DATASET = "healthcare-dataset-stroke-data.csv"
-MISSING_MARKERS = ["", " ", "NA", "N/A", "na", "n/a", "null", "NULL", "?"]
+MISSING_MARKERS = ["", " ", "NA", "N/A", "na", "n/a", "null", "NULL", "?", "Unknown"]
 
 
 def load_data(file_buffer=None, default_path: str = DEFAULT_DATASET) -> pd.DataFrame:
