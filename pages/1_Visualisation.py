@@ -7,7 +7,6 @@ from app_core.data_quality import (
     missing_summary
 )
 
-
 def render_missing_values(df):
     st.subheader("Missing Values")
     summary = missing_summary(df)
@@ -21,13 +20,11 @@ def render_missing_values(df):
     st.pyplot(fig)
     st.dataframe(summary)
 
-
 def render_duplicates(df):
     st.subheader("Duplication")
     duplicate_count, duplicate_rows = duplicate_summary(df)
     st.metric("Duplicate Rows", duplicate_count)
     st.dataframe(duplicate_rows)
-
 
 def render_column_insights(df: pd.DataFrame) -> None:
     st.subheader("Column Insights")
@@ -61,6 +58,7 @@ def render_column_insights(df: pd.DataFrame) -> None:
 
     st.dataframe(pd.DataFrame(summary_rows))
 
+# -----------------------------------------------------------------------------
 
 st.title("Visualisation")
 
