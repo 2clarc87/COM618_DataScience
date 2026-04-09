@@ -63,8 +63,4 @@ def clean_data_context_aware(df):
             cleaned[col] = series.fillna(fill_value)
             fill_map[col] = {"strategy": "mode", "value": fill_value}
 
-    rows_before = len(cleaned)
-    cleaned = cleaned.drop_duplicates().reset_index(drop=True)
-    duplicates_removed = rows_before - len(cleaned)
-
-    return cleaned, fill_map, duplicates_removed
+    return cleaned, fill_map
