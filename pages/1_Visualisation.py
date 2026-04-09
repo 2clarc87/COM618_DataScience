@@ -67,16 +67,6 @@ def render_graphs(df, cols):
         else:
             col2.plotly_chart(fig, use_container_width=True)
 
-def render_correlation_matrix(df, cols):
-    numeric_df = df[cols].select_dtypes(include="number")
-    st.subheader("Correlation Matrix")
-    if numeric_df.empty:
-        st.info("No numeric columns available for correlation matrix.")
-    else:
-        corr = numeric_df.corr()
-        fig_corr = px.imshow(corr, text_auto=True, color_continuous_scale="Blues")
-        st.plotly_chart(fig_corr, use_container_width=True)
-
 
 # -----------------------------------------------------------------------------
 
@@ -110,5 +100,3 @@ if session_df is None or session_cols is None:
     st.stop()
 
 render_graphs(session_df, session_cols)
-st.divider()
-render_correlation_matrix(data, session_cols)
