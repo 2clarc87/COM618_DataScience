@@ -2,10 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 
-from app_core.data_quality import (
-    duplicate_summary,
-    missing_summary
-)
+from app_core.data_quality import duplicate_summary, missing_summary
 
 def render_missing_values(df):
     st.subheader("Missing Values")
@@ -20,13 +17,15 @@ def render_missing_values(df):
     st.pyplot(fig)
     st.dataframe(summary)
 
+
 def render_duplicates(df):
     st.subheader("Duplication")
     duplicate_count, duplicate_rows = duplicate_summary(df)
     st.metric("Duplicate Rows", duplicate_count)
     st.dataframe(duplicate_rows)
 
-def render_column_insights(df: pd.DataFrame) -> None:
+
+def render_column_insights(df):
     st.subheader("Column Insights")
 
     unique_counts = df.nunique(dropna=True).sort_values(ascending=False)
