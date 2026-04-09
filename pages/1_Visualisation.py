@@ -47,15 +47,51 @@ def render_duplicates(df: pd.DataFrame) -> None:
         st.dataframe(duplicate_rows)
 
 
+def render_column_insights(df: pd.DataFrame) -> None:
+    st.subheader("Column Insights")
+
+    unique_counts = df.nunique(dropna=True).sort_values(ascending=False)
+
+    st.caption("Graph")
+    fig, ax = plt.subplots(figsize=(10, 4))
+    unique_counts.plot(kind="bar", ax=ax)
+    ax.set_title("Number of Unique Values by Column")
+    ax.set_ylabel("Unique Count")
+    ax.set_xlabel("Columns")
+    plt.xticks(rotation=45, ha="right")
+    st.pyplot(fig)
+
+    summary_rows = []
+    for col in df.columns:
+        non_null = df[col].dropna()
+        mode_series = non_null.mode()
+        most_common_value = mode_series.iloc[0] if not mode_series.empty else None
+        most_common_count = int((non_null == most_common_value).sum()) if most_common_value is not None else 0
+        mean_value = pd.to_numeric(df[col], errors="coerce").mean()
+
+        summary_rows.append(
+            {
+                "Column": col,
+                "Unique Values": int(df[col].nunique(dropna=True)),
+                "Most Common Value": most_common_value,
+                "Most Common Count": most_common_count,
+                "Mean (numeric columns)": round(float(mean_value), 3) if pd.notna(mean_value) else None,
+            }
+        )
+
+    st.caption("Table")
+    st.dataframe(pd.DataFrame(summary_rows))
+
+
 def render_error_data(df: pd.DataFrame) -> None:
     st.subheader("Error Data")
 
     if {"age", "avg_glucose_level", "bmi", "gender"}.issubset(df.columns):
         checks = stroke_dataset_error_checks(df)
-        st.info("Using validation rules tailored for the stroke dataset.")
+        st.info("Using validation rules tailored for the stroke dataset (data types + validity ranges).")
     else:
         checks = generic_error_checks(df)
-        st.info("Using generic validation rules (numeric format + outlier checks).")
+        st.info("Using generic validation rules (data type consistency + numeric format + outlier checks).")
 
     error_counts = {
         check_name: len(error_rows)
@@ -99,5 +135,7 @@ st.caption("Data source: Uploaded CSV")
 render_missing_values(data)
 st.divider()
 render_duplicates(data)
+st.divider()
+render_column_insights(data)
 st.divider()
 render_error_data(data)
