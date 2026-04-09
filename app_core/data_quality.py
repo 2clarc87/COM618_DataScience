@@ -62,3 +62,37 @@ def clean_data_context_aware(df):
             fill_map[col] = {"strategy": "mode", "value": fill_value}
 
     return cleaned, fill_map
+
+
+def apply_stroke_preprocessing(df):
+    preprocessed = df.copy()
+
+    if "id" in preprocessed.columns:
+        preprocessed = preprocessed.drop(columns=["id"])
+
+    if "bmi" in preprocessed.columns:
+        preprocessed = preprocessed.dropna(subset=["bmi"])
+
+    binary_mappings = {
+        "gender": {"Female": 0, "Male": 1},
+        "ever_married": {"No": 0, "Yes": 1},
+        "Residence_type": {"Rural": 0, "Urban": 1},
+    }
+
+    for column, mapping in binary_mappings.items():
+        if column in preprocessed.columns:
+            preprocessed[column] = preprocessed[column].map(mapping)
+
+    one_hot_columns = [
+        column
+        for column in ["work_type", "smoking_status"]
+        if column in preprocessed.columns
+    ]
+    if one_hot_columns:
+        preprocessed = pd.get_dummies(
+            preprocessed,
+            columns=one_hot_columns,
+            drop_first=True,
+        )
+
+    return preprocessed
