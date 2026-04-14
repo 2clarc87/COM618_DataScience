@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from app_core.data_pipeline import duplicate_summary, missing_summary
+from app_core.data_functions import duplicate_summary, missing_summary
 
 
 def render_missing_values(df):

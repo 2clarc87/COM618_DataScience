@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from app_core.data_pipeline import (
+from app_core.data_functions import (
     classification_metrics,
     regression_metrics,
     run_kmeans,
