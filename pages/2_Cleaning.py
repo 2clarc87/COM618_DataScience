@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-from app_core.data_quality import apply_stroke_preprocessing
+from app_core.data_pipeline import apply_stroke_preprocessing
 
 st.title("Data Preparation")
 

@@ -1,6 +1,6 @@
 import streamlit as st
 
-from app_core.data_quality import load_data
+from app_core.data_pipeline import load_data
 
 st.set_page_config(page_title="Health Care Data Science", layout="wide")
 
