@@ -1,6 +1,7 @@
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+import umap
 from sklearn.cluster import Birch, KMeans, OPTICS
 from sklearn.decomposition import PCA, TruncatedSVD
 from sklearn.preprocessing import StandardScaler
@@ -12,28 +13,14 @@ if "uploaded_data" not in st.session_state:
     st.warning("Load data first from the Home page.")
     st.stop()
 
-source_option = st.radio(
-    "Choose data source",
-    options=["Cleaned data (recommended)", "Uploaded raw data"],
-    horizontal=True,
-)
-
-if source_option == "Cleaned data (recommended)" and "cleaned_data" in st.session_state:
-    df = st.session_state["cleaned_data"].copy()
-else:
-    df = st.session_state["uploaded_data"].copy()
+df = st.session_state["cleaned_data"].copy()
 
 if df.empty:
     st.error("Dataset is empty.")
     st.stop()
 
-label_candidates = [c for c in ["stroke", "Label", "label"] if c in df.columns]
-label_col = st.selectbox(
-    "Label column (for symbol coloring)",
-    options=df.columns.tolist(),
-    index=df.columns.get_loc(label_candidates[0]) if label_candidates else 0,
-)
 
+label_col = "stroke"
 numeric_cols = df.select_dtypes(include="number").columns.tolist()
 feature_default = [c for c in numeric_cols if c != label_col]
 
@@ -69,13 +56,7 @@ if dr_algo == "PCA":
 elif dr_algo == "TruncatedSVD":
     reducer = TruncatedSVD(n_components=2, random_state=seed)
 else:
-    try:
-        import umap
-
-        reducer = umap.UMAP(n_components=2, random_state=seed)
-    except Exception:
-        st.warning("UMAP is not installed; using PCA fallback.")
-        reducer = PCA(n_components=2, random_state=seed)
+    reducer = umap.UMAP(n_components=2, random_state=seed)
 
 x2 = reducer.fit_transform(x_scaled)
 
@@ -94,9 +75,3 @@ fig = px.scatter(
 )
 
 st.plotly_chart(fig, use_container_width=True)
-
-cluster_counts = plot_df["cluster"].value_counts().sort_index().reset_index()
-cluster_counts.columns = ["Cluster", "Count"]
-
-st.subheader("Cluster Distribution")
-st.dataframe(cluster_counts, use_container_width=True)

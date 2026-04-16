@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
@@ -11,37 +10,24 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+from imblearn.over_sampling import SMOTE
 
 from app_core.data_functions import classification_metrics
 
 st.set_page_config(page_title="Model Comparison", layout="wide")
-st.title("Model Comparison (Stroke Dataset)")
+st.title("Models")
 
 if "uploaded_data" not in st.session_state:
     st.info("Upload a CSV file on the Home page first.")
     st.stop()
 
-source_option = st.radio(
-    "Choose data source",
-    options=["Cleaned data (recommended)", "Uploaded raw data"],
-    horizontal=True,
-)
+df = st.session_state["cleaned_data"].copy()
 
-if source_option == "Cleaned data (recommended)" and "cleaned_data" in st.session_state:
-    df = st.session_state["cleaned_data"].copy()
-else:
-    df = st.session_state["uploaded_data"].copy()
-
-if df.empty or df.shape[1] < 2:
-    st.error("Dataset must have at least 2 columns and 1 row.")
+if df.empty:
+    st.error("Dataset is empty.")
     st.stop()
 
-target_candidates = [c for c in ["stroke", "Label", "label"] if c in df.columns]
-if not target_candidates:
-    st.error("This page expects a stroke label column such as 'stroke' or 'Label'.")
-    st.stop()
-
-target_col = st.selectbox("Target column", options=df.columns.tolist(), index=df.columns.get_loc(target_candidates[0]))
+target_col = "stroke"
 feature_cols = [c for c in df.columns if c != target_col]
 
 if len(feature_cols) == 0:
@@ -76,7 +62,6 @@ if y.nunique(dropna=True) < 2:
     st.error("Target must contain at least two classes for classification.")
     st.stop()
 
-# Ensure models receive numeric input while preserving transformed feature columns.
 x = pd.get_dummies(x, drop_first=True)
 x = x.fillna(0)
 valid_idx = y.notna()
@@ -91,6 +76,8 @@ x_train, x_test, y_train, y_test = train_test_split(
     stratify=y,
 )
 
+sm = SMOTE(random_state=seed)
+x_train, y_train = sm.fit_resample(x_train, y_train)
 
 def fit_xgboost(x_tr: pd.DataFrame, y_tr: pd.Series):
     try:
@@ -130,13 +117,13 @@ def fit_catboost(x_tr: pd.DataFrame, y_tr: pd.Series):
 
 model_dict = {
     "Logistic Regression": lambda x_tr, y_tr: Pipeline(
-        [("scale", StandardScaler()), ("model", LogisticRegression(max_iter=1000, random_state=seed))]
+        [("scale", StandardScaler()), ("model", LogisticRegression(class_weight="balanced", max_iter=1000, random_state=seed))]
     ).fit(x_tr, y_tr),
     "KNN": lambda x_tr, y_tr: Pipeline(
         [("scale", StandardScaler()), ("model", KNeighborsClassifier(n_neighbors=5))]
     ).fit(x_tr, y_tr),
     "Naive Bayes": lambda x_tr, y_tr: GaussianNB().fit(x_tr, y_tr),
-    "Random Forest": lambda x_tr, y_tr: RandomForestClassifier(n_estimators=250, random_state=seed).fit(
+    "Random Forest": lambda x_tr, y_tr: RandomForestClassifier(class_weight="balanced", n_estimators=250, random_state=seed).fit(
         x_tr, y_tr
     ),
     "XGBoost": fit_xgboost,
@@ -203,4 +190,4 @@ for name in selected_models:
         showscale=True,
     )
     heatmap.update_layout(xaxis_title="Predicted", yaxis_title="Actual")
-    st.plotly_chart(heatmap, use_container_width=True)
+    st.plotly_chart(heatmap, use_container_width=True, key=f"{name}")

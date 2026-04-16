@@ -24,31 +24,7 @@ if "stroke" not in raw_df.columns:
 # -----------------------------------------------------------------------------
 
 st.divider()
-st.subheader("1) Class Distribution (Outcome Balance)")
-outcome_counts = raw_df["stroke"].value_counts(dropna=False).sort_index().reset_index()
-outcome_counts.columns = ["Stroke", "Count"]
-outcome_counts["Stroke Label"] = outcome_counts["Stroke"].map({0: "No", 1: "Yes"}).fillna("Unknown")
-
-fig = px.bar(
-    outcome_counts,
-    x="Stroke Label",
-    y="Count",
-    color="Stroke Label",
-    title="Stroke Outcome Distribution",
-    labels={"Stroke Label": "Stroke (0 = No, 1 = Yes)"},
-    text="Count",
-    color_discrete_sequence=["#4E79A7", "#E15759", "#9C755F"],
-)
-fig.update_layout(showlegend=False)
-st.plotly_chart(fig, use_container_width=True)
-
-stroke_rate = outcome_counts.loc[outcome_counts["Stroke"] == 1, "Count"].sum() / max(outcome_counts["Count"].sum(), 1) * 100
-st.metric("Overall stroke rate", f"{stroke_rate:.2f}%")
-
-# -----------------------------------------------------------------------------
-
-st.divider()
-st.subheader("2) Trend: Stroke Rate by Age Group")
+st.subheader("Stroke Rate by Age Group")
 age_df = raw_df[["age", "stroke"]].dropna().copy()
 if not age_df.empty:
     age_bins = [0, 20, 30, 40, 50, 60, 70, 80, np.inf]
@@ -76,7 +52,7 @@ if not age_df.empty:
 # -----------------------------------------------------------------------------
 
 st.divider()
-st.subheader("3) Trend: Stroke Rate by Key Risk Conditions")
+st.subheader("Stroke Rate by Key Risk Conditions")
 risk_cols = [col for col in ["hypertension", "heart_disease"] if col in raw_df.columns]
 if risk_cols:
     risk_rates = []
@@ -100,7 +76,7 @@ if risk_cols:
 # -----------------------------------------------------------------------------
 
 st.divider()
-st.subheader("4) Pattern: Stroke Rate Across Work Type")
+st.subheader("Stroke Rate Across Work Type")
 if "work_type" in raw_df.columns:
     work_rate = (
         raw_df[["work_type", "stroke"]]
@@ -124,7 +100,7 @@ if "work_type" in raw_df.columns:
 # -----------------------------------------------------------------------------
 
 st.divider()
-st.subheader("5) Pattern: Stroke Rate Across Smoking Status")
+st.subheader("Stroke Rate Across Smoking Status")
 if "smoking_status" in raw_df.columns:
     smoking_rate = (
         raw_df[["smoking_status", "stroke"]]
@@ -148,7 +124,7 @@ if "smoking_status" in raw_df.columns:
 # -----------------------------------------------------------------------------
 
 st.divider()
-st.subheader("6) Numeric Comparison: Glucose and BMI by Outcome")
+st.subheader("Glucose and BMI by Outcome")
 numeric_compare_cols = [col for col in ["avg_glucose_level", "bmi"] if col in raw_df.columns]
 if numeric_compare_cols:
     melted = raw_df[["stroke", *numeric_compare_cols]].copy()
@@ -170,7 +146,7 @@ if numeric_compare_cols:
 
 st.divider()
 numeric_df = cleaned_df.select_dtypes(include=["number"])
-st.subheader("7) Correlation Structure (Encoded Data)")
+st.subheader("Correlation Structure (Encoded Data)")
 if numeric_df.shape[1] > 1:
     corr = numeric_df.corr(numeric_only=True)
     fig = px.imshow(
@@ -186,7 +162,7 @@ if numeric_df.shape[1] > 1:
 # -----------------------------------------------------------------------------
 
 st.divider()
-st.subheader("8) Feature Importance Proxy: Correlation with Stroke")
+st.subheader("Correlation with Stroke")
 if "stroke" in numeric_df.columns and numeric_df.shape[1] > 2:
     stroke_corr = numeric_df.corr(numeric_only=True)["stroke"].drop("stroke").sort_values()
 
@@ -201,14 +177,3 @@ if "stroke" in numeric_df.columns and numeric_df.shape[1] > 2:
         color_discrete_sequence=["#EDC948"],
     )
     st.plotly_chart(fig, use_container_width=True)
-
-    top_patterns = stroke_corr.abs().sort_values(ascending=False).head(5)
-    pattern_df = pd.DataFrame(
-        {
-            "Feature": top_patterns.index,
-            "|Correlation with Stroke|": top_patterns.values.round(4),
-        }
-    )
-
-    st.markdown("**Top correlation-based patterns detected:**")
-    st.dataframe(pattern_df, use_container_width=True)
