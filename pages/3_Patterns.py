@@ -27,6 +27,7 @@ st.divider()
 st.subheader("Stroke Rate by Age Group")
 age_df = raw_df[["age", "stroke"]].dropna().copy()
 if not age_df.empty:
+
     age_bins = [0, 20, 30, 40, 50, 60, 70, 80, np.inf]
     age_labels = ["0-20", "21-30", "31-40", "41-50", "51-60", "61-70", "71-80", "80+"]
     age_df["age_group"] = pd.cut(age_df["age"], bins=age_bins, labels=age_labels, right=True)
