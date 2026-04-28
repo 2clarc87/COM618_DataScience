@@ -76,7 +76,7 @@ x_train, x_test, y_train, y_test = train_test_split(
     stratify=y,
 )
 
-sm = SMOTE(random_state=seed)
+sm = SMOTE(random_state=seed, sampling_strategy=0.3)
 x_train, y_train = sm.fit_resample(x_train, y_train)
 
 def fit_xgboost(x_tr: pd.DataFrame, y_tr: pd.Series):
