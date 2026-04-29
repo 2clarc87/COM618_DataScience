@@ -7,7 +7,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
-from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from imblearn.over_sampling import SMOTE
@@ -39,13 +38,10 @@ selected_models = st.multiselect(
     [
         "Logistic Regression",
         "Random Forest",
-        "KNN",
         "Naive Bayes",
         "XGBoost",
-        "LightGBM",
-        "CatBoost",
     ],
-    default=["Logistic Regression", "Random Forest", "KNN"],
+    default=["Logistic Regression", "Random Forest", "Naive Bayes"],
 )
 
 test_size = st.slider("Test Size", 0.1, 0.5, 0.3, 0.05)
@@ -95,40 +91,15 @@ def fit_xgboost(x_tr: pd.DataFrame, y_tr: pd.Series):
     return model.fit(x_tr, y_tr)
 
 
-def fit_lightgbm(x_tr: pd.DataFrame, y_tr: pd.Series):
-    try:
-        from lightgbm import LGBMClassifier
-
-        model = LGBMClassifier(n_estimators=250, learning_rate=0.05, random_state=seed)
-    except Exception:
-        model = RandomForestClassifier(n_estimators=250, random_state=seed)
-    return model.fit(x_tr, y_tr)
-
-
-def fit_catboost(x_tr: pd.DataFrame, y_tr: pd.Series):
-    try:
-        from catboost import CatBoostClassifier
-
-        model = CatBoostClassifier(iterations=250, learning_rate=0.05, random_seed=seed, verbose=False)
-    except Exception:
-        model = RandomForestClassifier(n_estimators=250, random_state=seed)
-    return model.fit(x_tr, y_tr)
-
-
 model_dict = {
     "Logistic Regression": lambda x_tr, y_tr: Pipeline(
         [("scale", StandardScaler()), ("model", LogisticRegression(class_weight="balanced", max_iter=1000, random_state=seed))]
     ).fit(x_tr, y_tr),
-    "KNN": lambda x_tr, y_tr: Pipeline(
-        [("scale", StandardScaler()), ("model", KNeighborsClassifier(n_neighbors=5))]
-    ).fit(x_tr, y_tr),
-    "Naive Bayes": lambda x_tr, y_tr: GaussianNB().fit(x_tr, y_tr),
     "Random Forest": lambda x_tr, y_tr: RandomForestClassifier(class_weight="balanced", n_estimators=250, random_state=seed).fit(
         x_tr, y_tr
     ),
+    "Naive Bayes": lambda x_tr, y_tr: GaussianNB().fit(x_tr, y_tr),
     "XGBoost": fit_xgboost,
-    "LightGBM": fit_lightgbm,
-    "CatBoost": fit_catboost,
 }
 
 results = []
