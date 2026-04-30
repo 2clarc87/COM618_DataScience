@@ -1,22 +1,22 @@
 import pandas as pd
+import streamlit as st
 import plotly.express as px
 import plotly.figure_factory as ff
-import streamlit as st
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import confusion_matrix
-import numpy as np
+
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import f1_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-from imblearn.over_sampling import SMOTE
+from sklearn.metrics import confusion_matrix
+
 from xgboost import XGBClassifier
+from imblearn.over_sampling import SMOTE
 
 from app_core.data_functions import classification_metrics
 
-st.set_page_config(page_title="Model Comparison", layout="wide")
+st.set_page_config(page_title="Models", layout="wide")
 st.title("Models")
 
 if "uploaded_data" not in st.session_state:
@@ -34,22 +34,14 @@ feature_cols = [c for c in df.columns if c != target_col]
 
 selected_models = st.multiselect(
     "Select models",
-    [
-        "Logistic Regression",
-        "Random Forest",
-        "Naive Bayes",
-        "XGBoost",
-    ],
-    default=["Logistic Regression", "Random Forest", "Naive Bayes"],
+    ["Logistic Regression", "Random Forest", "Naive Bayes", "XGBoost"],
+    default=["Logistic Regression"]
 )
 
 test_size = st.slider("Test Size", 0.1, 0.5, 0.3, 0.05)
 seed = st.session_state.get("seed", 42)
 
-use_smote = st.checkbox("Use SMOTE oversampling", value=True)
-smote_ratio = st.slider("SMOTE ratio", 0.1, 1.0, 0.3, 0.1)
-use_class_weight = st.checkbox("Use class_weight=balanced", value=False)
-positive_threshold = st.slider("Positive class threshold", 0.1, 0.95, 0.65, 0.05)
+use_smote = st.checkbox("Apply SMOTE", value=False)
 
 if len(selected_models) == 0:
     st.info("Choose at least one model.")
@@ -59,16 +51,17 @@ x = df[feature_cols].copy()
 y = df[target_col].copy()
 
 if y.nunique(dropna=True) < 2:
-    st.error("Target must contain at least two classes for classification.")
+    st.error("Target must contain at least two classes.")
     st.stop()
 
 x = pd.get_dummies(x, drop_first=True)
 x = x.fillna(0)
+
 valid_idx = y.notna()
 x = x.loc[valid_idx]
 y = y.loc[valid_idx]
 
-x_train_full, x_test, y_train_full, y_test = train_test_split(
+x_train, x_test, y_train, y_test = train_test_split(
     x,
     y,
     test_size=test_size,
@@ -76,71 +69,41 @@ x_train_full, x_test, y_train_full, y_test = train_test_split(
     stratify=y,
 )
 
-# Create validation split to tune probability threshold without leaking test data
-x_train, x_val, y_train, y_val = train_test_split(
-    x_train_full,
-    y_train_full,
-    test_size=0.2,
-    random_state=seed,
-    stratify=y_train_full,
-)
-
 if use_smote:
-    sm = SMOTE(random_state=seed, sampling_strategy=smote_ratio)
+    sm = SMOTE(random_state=seed, sampling_strategy=0.5)
     x_train, y_train = sm.fit_resample(x_train, y_train)
 
-def fit_xgboost(x_tr, y_tr):
-    model = XGBClassifier(
-        n_estimators=250,
-        learning_rate=0.05,
+model_dict = {
+    "Logistic Regression": lambda: Pipeline(
+        [("scale", StandardScaler()), ("model", LogisticRegression(max_iter=1000, random_state=seed))]
+    ),
+    "Random Forest": lambda: RandomForestClassifier(
+        n_estimators=200,
+        random_state=seed,
+    ),
+    "Naive Bayes": lambda: GaussianNB(),
+    "XGBoost": lambda: XGBClassifier(
+        n_estimators=200,
+        learning_rate=0.1,
         max_depth=5,
         random_state=seed,
         eval_metric="logloss",
-    )
-    return model.fit(x_tr, y_tr)
-
-
-model_dict = {
-    "Logistic Regression": lambda x_tr, y_tr: Pipeline(
-        [("scale", StandardScaler()), ("model", LogisticRegression(class_weight="balanced" if use_class_weight else None, max_iter=1000, random_state=seed))]
-    ).fit(x_tr, y_tr),
-    "Random Forest": lambda x_tr, y_tr: RandomForestClassifier(
-        class_weight="balanced" if use_class_weight else None,
-        n_estimators=250,
-        min_samples_leaf=5,
-        random_state=seed,
-    ).fit(x_tr, y_tr),
-    "Naive Bayes": lambda x_tr, y_tr: GaussianNB().fit(x_tr, y_tr),
-    "XGBoost": fit_xgboost,
+    ),
 }
 
 results = []
 conf_mats = {}
 
 for name in selected_models:
-    model = model_dict[name](x_train, y_train)
+    model = model_dict[name]()
+    model.fit(x_train, y_train)
     predictions = model.predict(x_test)
-    tuned_threshold = positive_threshold
 
-    if y.nunique(dropna=True) <= 2 and hasattr(model, "predict_proba"):
-        class_labels = list(model.classes_)
-        positive_label = max(class_labels)
-        negative_label = min(class_labels)
-        positive_index = class_labels.index(positive_label)
-
-        val_probabilities = model.predict_proba(x_val)[:, positive_index]
-        candidate_thresholds = np.arange(0.1, 0.96, 0.05)
-        best_f1 = -1
-        for threshold in candidate_thresholds:
-            val_predictions = np.where(val_probabilities >= threshold, positive_label, negative_label)
-            current_f1 = f1_score(y_val, val_predictions, zero_division=0)
-            if current_f1 > best_f1:
-                best_f1 = current_f1
-                tuned_threshold = float(threshold)
-
-        probabilities = model.predict_proba(x_test)[:, positive_index]
-        predictions = np.where(probabilities >= tuned_threshold, positive_label, negative_label)
-    metrics = classification_metrics(y_test, predictions, is_binary_target=(y.nunique(dropna=True) <= 2))
+    metrics = classification_metrics(
+        y_test,
+        predictions,
+        is_binary_target=(y.nunique(dropna=True) <= 2),
+    )
 
     labels = metrics["labels"]
     conf_mats[name] = {
@@ -159,16 +122,19 @@ for name in selected_models:
             "Precision": metrics["precision"],
             "Recall": metrics["recall"],
             "F1 Score": metrics["f1"],
-            "Threshold Used": tuned_threshold,
         }
     )
 
 results_df = pd.DataFrame(results).sort_values("F1 Score", ascending=False).reset_index(drop=True)
 
 st.subheader("Model Performance Comparison")
-st.dataframe(results_df.style.format({c: "{:.4f}" for c in results_df.columns if c != "Model"}), use_container_width=True)
+st.dataframe(
+    results_df.style.format({c: "{:.4f}" for c in results_df.columns if c != "Model"}),
+    use_container_width=True,
+)
 
 col1, col2 = st.columns(2)
+
 with col1:
     st.subheader("Accuracy Comparison")
     fig_acc = px.bar(results_df, x="Model", y="Accuracy", text="Accuracy")
@@ -182,6 +148,7 @@ with col2:
     st.plotly_chart(fig_f1, use_container_width=True)
 
 st.subheader("Confusion Matrices")
+
 for name in selected_models:
     st.markdown(f"### {name}")
     cm = conf_mats[name]["cm"]
@@ -194,4 +161,4 @@ for name in selected_models:
         showscale=True,
     )
     heatmap.update_layout(xaxis_title="Predicted", yaxis_title="Actual")
-    st.plotly_chart(heatmap, use_container_width=True, key=f"{name}")
+    st.plotly_chart(heatmap, use_container_width=True, key=name)
