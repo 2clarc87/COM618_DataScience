@@ -7,6 +7,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix
 import numpy as np
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import f1_score
 from sklearn.naive_bayes import GaussianNB
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -67,12 +68,21 @@ valid_idx = y.notna()
 x = x.loc[valid_idx]
 y = y.loc[valid_idx]
 
-x_train, x_test, y_train, y_test = train_test_split(
+x_train_full, x_test, y_train_full, y_test = train_test_split(
     x,
     y,
     test_size=test_size,
     random_state=seed,
     stratify=y,
+)
+
+# Create validation split to tune probability threshold without leaking test data
+x_train, x_val, y_train, y_val = train_test_split(
+    x_train_full,
+    y_train_full,
+    test_size=0.2,
+    random_state=seed,
+    stratify=y_train_full,
 )
 
 if use_smote:
@@ -110,13 +120,26 @@ conf_mats = {}
 for name in selected_models:
     model = model_dict[name](x_train, y_train)
     predictions = model.predict(x_test)
+    tuned_threshold = positive_threshold
 
     if y.nunique(dropna=True) <= 2 and hasattr(model, "predict_proba"):
         class_labels = list(model.classes_)
         positive_label = max(class_labels)
+        negative_label = min(class_labels)
         positive_index = class_labels.index(positive_label)
+
+        val_probabilities = model.predict_proba(x_val)[:, positive_index]
+        candidate_thresholds = np.arange(0.1, 0.96, 0.05)
+        best_f1 = -1
+        for threshold in candidate_thresholds:
+            val_predictions = np.where(val_probabilities >= threshold, positive_label, negative_label)
+            current_f1 = f1_score(y_val, val_predictions, zero_division=0)
+            if current_f1 > best_f1:
+                best_f1 = current_f1
+                tuned_threshold = float(threshold)
+
         probabilities = model.predict_proba(x_test)[:, positive_index]
-        predictions = np.where(probabilities >= positive_threshold, positive_label, min(class_labels))
+        predictions = np.where(probabilities >= tuned_threshold, positive_label, negative_label)
     metrics = classification_metrics(y_test, predictions, is_binary_target=(y.nunique(dropna=True) <= 2))
 
     labels = metrics["labels"]
@@ -136,6 +159,7 @@ for name in selected_models:
             "Precision": metrics["precision"],
             "Recall": metrics["recall"],
             "F1 Score": metrics["f1"],
+            "Threshold Used": tuned_threshold,
         }
     )
 

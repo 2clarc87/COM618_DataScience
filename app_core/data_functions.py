@@ -89,7 +89,9 @@ def apply_stroke_preprocessing(df):
         preprocessed = preprocessed.drop(columns=["id"])
 
     if "bmi" in preprocessed.columns:
-        preprocessed = preprocessed.dropna(subset=["bmi"])
+        bmi_median = preprocessed["bmi"].median(skipna=True)
+        if pd.notna(bmi_median):
+            preprocessed["bmi"] = preprocessed["bmi"].fillna(bmi_median)
 
     binary_mappings = {
         "gender": {"Female": 0, "Male": 1},
