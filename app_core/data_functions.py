@@ -121,7 +121,7 @@ def apply_stroke_preprocessing(df):
     return preprocessed
 
 
-def build_feature_preprocessor(X: pd.DataFrame) -> ColumnTransformer:
+def build_feature_preprocessor(X):
     num_cols = X.select_dtypes(include=[np.number]).columns.tolist()
     cat_cols = [col for col in X.columns if col not in num_cols]
 
@@ -146,12 +146,12 @@ def build_feature_preprocessor(X: pd.DataFrame) -> ColumnTransformer:
     )
 
 
-def run_kmeans(df: pd.DataFrame, feature_cols: list[str], n_clusters: int):
+def run_kmeans(df, feature_cols, n_clusters):
     X = df[feature_cols].copy()
     preprocessor = build_feature_preprocessor(X)
     X_encoded = preprocessor.fit_transform(X)
 
-    model = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+    model = KMeans(n_clusters=n_clusters, random_state=67, n_init=10)
     cluster_labels = model.fit_predict(X_encoded)
 
     output = df.copy()
@@ -159,7 +159,7 @@ def run_kmeans(df: pd.DataFrame, feature_cols: list[str], n_clusters: int):
     return output
 
 
-def prepare_supervised_data(df: pd.DataFrame, target_col: str):
+def prepare_supervised_data(df, target_col):
     X = df.drop(columns=[target_col]).copy()
     y = df[target_col].copy()
 
@@ -167,7 +167,7 @@ def prepare_supervised_data(df: pd.DataFrame, target_col: str):
     return X.loc[valid_idx], y.loc[valid_idx]
 
 
-def choose_model(model_name: str, y: pd.Series):
+def choose_model(model_name, y):
     is_binary_target = y.nunique(dropna=True) <= 2
     is_numeric_target = pd.api.types.is_numeric_dtype(y)
 
@@ -179,8 +179,8 @@ def choose_model(model_name: str, y: pd.Series):
 
     if model_name == "Random Forest":
         if is_binary_target or (not is_numeric_target):
-            return RandomForestClassifier(n_estimators=250, random_state=42), "classification", is_binary_target
-        return RandomForestRegressor(n_estimators=250, random_state=42), "regression", is_binary_target
+            return RandomForestClassifier(n_estimators=350, random_state=67), "classification", is_binary_target
+        return RandomForestRegressor(n_estimators=350, random_state=67), "regression", is_binary_target
 
     if model_name == "XGBoost":
         try:
@@ -189,10 +189,10 @@ def choose_model(model_name: str, y: pd.Series):
             if is_binary_target or (not is_numeric_target):
                 return (
                     XGBClassifier(
-                        n_estimators=250,
+                        n_estimators=350,
                         learning_rate=0.05,
                         max_depth=5,
-                        random_state=42,
+                        random_state=67,
                         eval_metric="logloss",
                     ),
                     "classification",
@@ -200,23 +200,23 @@ def choose_model(model_name: str, y: pd.Series):
                 )
             return (
                 XGBRegressor(
-                    n_estimators=250,
+                    n_estimators=350,
                     learning_rate=0.05,
                     max_depth=5,
-                    random_state=42,
+                    random_state=67,
                 ),
                 "regression",
                 is_binary_target,
             )
         except Exception:
             if is_binary_target or (not is_numeric_target):
-                return RandomForestClassifier(n_estimators=250, random_state=42), "classification", is_binary_target
-            return RandomForestRegressor(n_estimators=250, random_state=42), "regression", is_binary_target
+                return RandomForestClassifier(n_estimators=350, random_state=67), "classification", is_binary_target
+            return RandomForestRegressor(n_estimators=350, random_state=67), "regression", is_binary_target
 
     raise ValueError(f"Unsupported model: {model_name}")
 
 
-def train_supervised_model(df: pd.DataFrame, target_col: str, model_name: str, test_size_pct: int):
+def train_supervised_model(df, target_col, model_name, test_size_pct):
     X, y = prepare_supervised_data(df, target_col)
     if X.empty:
         raise ValueError("No valid rows left after dropping missing target values.")
@@ -226,7 +226,7 @@ def train_supervised_model(df: pd.DataFrame, target_col: str, model_name: str, t
         X,
         y,
         test_size=test_size_pct / 100,
-        random_state=42,
+        random_state=67,
         stratify=stratify,
     )
 
@@ -249,7 +249,7 @@ def train_supervised_model(df: pd.DataFrame, target_col: str, model_name: str, t
     }
 
 
-def classification_metrics(y_test, preds, is_binary_target: bool):
+def classification_metrics(y_test, preds, is_binary_target):
     if not is_binary_target and y_test.dtype == "object":
         y_test_eval = y_test.astype(str)
         pred_eval = pd.Series(preds).astype(str)

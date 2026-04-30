@@ -11,6 +11,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from imblearn.over_sampling import SMOTE
+from xgboost import XGBClassifier
 
 from app_core.data_functions import classification_metrics
 
@@ -24,15 +25,11 @@ if "uploaded_data" not in st.session_state:
 df = st.session_state["cleaned_data"].copy()
 
 if df.empty:
-    st.error("Dataset is empty.")
+    st.error("Dataset is not cleaned.")
     st.stop()
 
 target_col = "stroke"
 feature_cols = [c for c in df.columns if c != target_col]
-
-if len(feature_cols) == 0:
-    st.error("No feature columns available after selecting target.")
-    st.stop()
 
 selected_models = st.multiselect(
     "Select models",
@@ -82,19 +79,14 @@ if use_smote:
     sm = SMOTE(random_state=seed, sampling_strategy=smote_ratio)
     x_train, y_train = sm.fit_resample(x_train, y_train)
 
-def fit_xgboost(x_tr: pd.DataFrame, y_tr: pd.Series):
-    try:
-        from xgboost import XGBClassifier
-
-        model = XGBClassifier(
-            n_estimators=250,
-            learning_rate=0.05,
-            max_depth=5,
-            random_state=seed,
-            eval_metric="logloss",
-        )
-    except Exception:
-        model = RandomForestClassifier(n_estimators=250, random_state=seed)
+def fit_xgboost(x_tr, y_tr):
+    model = XGBClassifier(
+        n_estimators=250,
+        learning_rate=0.05,
+        max_depth=5,
+        random_state=seed,
+        eval_metric="logloss",
+    )
     return model.fit(x_tr, y_tr)
 
 
