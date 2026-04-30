@@ -46,42 +46,6 @@ def duplicate_summary(df):
     return int(df.duplicated().sum()), duplicate_rows
 
 
-def fill_numeric_missing_with_mean(df):
-    cleaned = df.copy()
-    numeric_columns = cleaned.select_dtypes(include="number").columns
-    mean_map = {}
-
-    for col in numeric_columns:
-        mean_value = cleaned[col].mean(skipna=True)
-        mean_map[col] = float(mean_value) if pd.notna(mean_value) else None
-        if pd.notna(mean_value):
-            cleaned[col] = cleaned[col].fillna(mean_value)
-
-    return cleaned, mean_map
-
-
-def clean_data_context_aware(df):
-    cleaned = df.copy()
-    fill_map = {}
-
-    for col in cleaned.columns:
-        series = cleaned[col]
-        if pd.api.types.is_numeric_dtype(series):
-            fill_value = series.mean(skipna=True)
-            if pd.notna(fill_value):
-                cleaned[col] = series.fillna(fill_value)
-                fill_map[col] = {"strategy": "mean", "value": float(fill_value)}
-            else:
-                fill_map[col] = {"strategy": "mean", "value": None}
-        else:
-            mode = series.mode(dropna=True)
-            fill_value = mode.iloc[0] if not mode.empty else "Unknown"
-            cleaned[col] = series.fillna(fill_value)
-            fill_map[col] = {"strategy": "mode", "value": fill_value}
-
-    return cleaned, fill_map
-
-
 def apply_stroke_preprocessing(df):
     preprocessed = df.copy()
 

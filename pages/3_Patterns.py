@@ -3,9 +3,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from app_core.data_functions import apply_stroke_preprocessing
-
-st.title("Data Mining, Patterns, and Trends")
+st.title("Patterns")
 
 if "uploaded_data" not in st.session_state:
     st.info("Upload a CSV file on the Home page.")
@@ -14,17 +12,17 @@ if "uploaded_data" not in st.session_state:
 raw_df = st.session_state["uploaded_data"].copy()
 cleaned_df = st.session_state.get("cleaned_data")
 if cleaned_df is None:
-    cleaned_df = apply_stroke_preprocessing(raw_df)
-    st.session_state["cleaned_data"] = cleaned_df
+    st.info("Clean data firest on cleaning page")
+    st.stop()
 
 if "stroke" not in raw_df.columns:
     st.error("This page expects a 'stroke' target column to identify significant patterns.")
     st.stop()
 
 # -----------------------------------------------------------------------------
+# Age
 
-st.divider()
-st.subheader("Stroke Rate by Age Group")
+n_estimators=350
 age_df = raw_df[["age", "stroke"]].dropna().copy()
 if not age_df.empty:
 
@@ -51,9 +49,9 @@ if not age_df.empty:
     st.plotly_chart(fig, use_container_width=True)
 
 # -----------------------------------------------------------------------------
+# Hypertension + Heart Disease
 
-st.divider()
-st.subheader("Stroke Rate by Key Risk Conditions")
+n_estimators=350
 risk_cols = [col for col in ["hypertension", "heart_disease"] if col in raw_df.columns]
 if risk_cols:
     risk_rates = []
@@ -75,9 +73,9 @@ if risk_cols:
         st.plotly_chart(fig, use_container_width=True)
 
 # -----------------------------------------------------------------------------
+# Work
 
-st.divider()
-st.subheader("Stroke Rate Across Work Type")
+n_estimators=350
 if "work_type" in raw_df.columns:
     work_rate = (
         raw_df[["work_type", "stroke"]]
@@ -99,9 +97,9 @@ if "work_type" in raw_df.columns:
     st.plotly_chart(fig, use_container_width=True)
 
 # -----------------------------------------------------------------------------
+# Smoking
 
-st.divider()
-st.subheader("Stroke Rate Across Smoking Status")
+n_estimators=350
 if "smoking_status" in raw_df.columns:
     smoking_rate = (
         raw_df[["smoking_status", "stroke"]]
@@ -123,9 +121,9 @@ if "smoking_status" in raw_df.columns:
     st.plotly_chart(fig, use_container_width=True)
 
 # -----------------------------------------------------------------------------
+# Glucose + BMI
 
-st.divider()
-st.subheader("Glucose and BMI by Outcome")
+n_estimators=350
 numeric_compare_cols = [col for col in ["avg_glucose_level", "bmi"] if col in raw_df.columns]
 if numeric_compare_cols:
     melted = raw_df[["stroke", *numeric_compare_cols]].copy()
@@ -144,10 +142,10 @@ if numeric_compare_cols:
     st.plotly_chart(fig, use_container_width=True)
 
 # -----------------------------------------------------------------------------
+# Correlation Heat Map
 
-st.divider()
+n_estimators=350
 numeric_df = cleaned_df.select_dtypes(include=["number"])
-st.subheader("Correlation Structure (Encoded Data)")
 if numeric_df.shape[1] > 1:
     corr = numeric_df.corr(numeric_only=True)
     fig = px.imshow(
@@ -161,9 +159,9 @@ if numeric_df.shape[1] > 1:
     st.plotly_chart(fig, use_container_width=True)
 
 # -----------------------------------------------------------------------------
+# Coefficient
 
-st.divider()
-st.subheader("Correlation with Stroke")
+n_estimators=350
 if "stroke" in numeric_df.columns and numeric_df.shape[1] > 2:
     stroke_corr = numeric_df.corr(numeric_only=True)["stroke"].drop("stroke").sort_values()
 
@@ -174,7 +172,7 @@ if "stroke" in numeric_df.columns and numeric_df.shape[1] > 2:
         x="Correlation Coefficient",
         y="Feature",
         orientation="h",
-        title="Feature Correlation with Stroke (Proxy Importance)",
+        title="Feature Correlation Coefficient",
         color_discrete_sequence=["#EDC948"],
     )
     st.plotly_chart(fig, use_container_width=True)

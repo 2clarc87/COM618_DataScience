@@ -20,14 +20,20 @@ st.set_page_config(page_title="Models", layout="wide")
 st.title("Models")
 
 if "uploaded_data" not in st.session_state:
-    st.info("Upload a CSV file on the Home page first.")
+    st.info("Upload a CSV file on the Home page.")
     st.stop()
 
 df = st.session_state["cleaned_data"].copy()
-
-if df.empty:
-    st.error("Dataset is not cleaned.")
+if df is None:
+    st.info("Clean data firest on cleaning page")
     st.stop()
+
+if "stroke" not in df.columns:
+    st.error("This page expects a 'stroke' target column to identify significant patterns.")
+    st.stop()
+
+# -----------------------------------------------------------------------------
+# UI
 
 target_col = "stroke"
 feature_cols = [c for c in df.columns if c != target_col]
@@ -46,6 +52,9 @@ use_smote = st.checkbox("Apply SMOTE", value=False)
 if len(selected_models) == 0:
     st.info("Choose at least one model.")
     st.stop()
+
+# -----------------------------------------------------------------------------
+# Data Split
 
 x = df[feature_cols].copy()
 y = df[target_col].copy()
@@ -72,6 +81,9 @@ x_train, x_test, y_train, y_test = train_test_split(
 if use_smote:
     sm = SMOTE(random_state=seed, sampling_strategy=0.5)
     x_train, y_train = sm.fit_resample(x_train, y_train)
+
+# -----------------------------------------------------------------------------
+# Training
 
 model_dict = {
     "Logistic Regression": lambda: Pipeline(
@@ -124,6 +136,9 @@ for name in selected_models:
             "F1 Score": metrics["f1"],
         }
     )
+
+# -----------------------------------------------------------------------------
+# Results
 
 results_df = pd.DataFrame(results).sort_values("F1 Score", ascending=False).reset_index(drop=True)
 

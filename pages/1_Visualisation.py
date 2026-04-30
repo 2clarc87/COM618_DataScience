@@ -6,33 +6,27 @@ from app_core.data_functions import duplicate_summary, missing_summary
 
 
 def render_missing_values(df):
-    st.subheader("Missing Values")
     summary = missing_summary(df)
 
-    col1, col2 = st.columns(2)
 
     fig = px.bar(summary, y="Missing Count", title="Missing Values by Column",
                  labels={"index": "Columns"})
-    col1.plotly_chart(fig, use_container_width=True)
-    col2.dataframe(summary)
+    st.plotly_chart(fig, use_container_width=True)
+    st.dataframe(summary)
 
 
 def render_duplicates(df):
-    st.subheader("Duplication")
     duplicate_count, duplicate_rows = duplicate_summary(df)
     st.metric("Duplicate Rows", duplicate_count)
 
 
 def render_column_insights(df):
-    st.subheader("Column Insights")
-    col1, col2 = st.columns(2)
-
     unique_counts = df.nunique(dropna=True).sort_values(ascending=False).reset_index()
     unique_counts.columns = ["Column", "Unique Count"]
 
     fig = px.bar(unique_counts, x="Column", y="Unique Count",
                  title="Number of Unique Values by Column")
-    col1.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True)
 
     summary_rows = []
     for col in df.columns:
@@ -52,20 +46,16 @@ def render_column_insights(df):
             }
         )
 
-    col2.dataframe(pd.DataFrame(summary_rows))
+    st.dataframe(pd.DataFrame(summary_rows))
 
 
 def render_graphs(df, cols):
-    st.subheader("Columns")
-
-    col1, col2 = st.columns(2)
-
     for i, col in enumerate(cols):
         fig = px.histogram(df, x=col, nbins=40, title=f"Distribution: {col}")
         if i % 2 == 0:
-            col1.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
         else:
-            col2.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
 
 
 # -----------------------------------------------------------------------------
@@ -82,11 +72,8 @@ st.session_state.setdefault("df", data)
 st.session_state.setdefault("cols", list(data.columns))
 
 render_missing_values(data)
-st.divider()
 render_duplicates(data)
-st.divider()
 render_column_insights(data)
-st.divider()
 
 session_df = st.session_state.get("df")
 session_cols = st.session_state.get("cols")

@@ -10,15 +10,20 @@ st.set_page_config(page_title="Distribution", layout="wide")
 st.title("Distribution")
 
 if "uploaded_data" not in st.session_state:
-    st.warning("Load data first from the Home page.")
+    st.info("Upload a CSV file on the Home page.")
     st.stop()
 
 df = st.session_state["cleaned_data"].copy()
-
-if df.empty:
-    st.error("Dataset is empty.")
+if df is None:
+    st.info("Clean data firest on cleaning page")
     st.stop()
 
+if "stroke" not in df.columns:
+    st.error("This page expects a 'stroke' target column to identify significant patterns.")
+    st.stop()
+
+# -----------------------------------------------------------------------------
+# UI
 
 label_col = "stroke"
 numeric_cols = df.select_dtypes(include="number").columns.tolist()
@@ -38,7 +43,10 @@ st.header("Clustering")
 cluster_algo = st.selectbox("Clustering algorithm", ["KMeans", "Birch", "OPTICS"])
 dr_algo = st.selectbox("Dimensionality reduction", ["PCA", "UMAP", "TruncatedSVD"])
 n_clusters = st.slider("Number of clusters", 2, 12, 6)
-seed = int(st.session_state.get("seed", 42))
+seed = int(st.session_state.get("seed", 67))
+
+# -----------------------------------------------------------------------------
+# Clustering
 
 x = pd.get_dummies(df[feature_cols], drop_first=True).fillna(0)
 x_scaled = StandardScaler().fit_transform(x)
@@ -59,6 +67,9 @@ else:
     reducer = umap.UMAP(n_components=2, random_state=seed)
 
 x2 = reducer.fit_transform(x_scaled)
+
+# -----------------------------------------------------------------------------
+# Results
 
 plot_df = pd.DataFrame(x2, columns=["dim1", "dim2"])
 plot_df["cluster"] = cluster_labels.astype(str)
