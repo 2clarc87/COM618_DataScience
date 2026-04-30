@@ -5,6 +5,7 @@ import streamlit as st
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix
+import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.pipeline import Pipeline
@@ -44,6 +45,11 @@ selected_models = st.multiselect(
 test_size = st.slider("Test Size", 0.1, 0.5, 0.3, 0.05)
 seed = st.session_state.get("seed", 42)
 
+use_smote = st.checkbox("Use SMOTE oversampling", value=True)
+smote_ratio = st.slider("SMOTE ratio", 0.1, 1.0, 0.3, 0.1)
+use_class_weight = st.checkbox("Use class_weight=balanced", value=False)
+positive_threshold = st.slider("Positive class threshold", 0.1, 0.95, 0.65, 0.05)
+
 if len(selected_models) == 0:
     st.info("Choose at least one model.")
     st.stop()
@@ -69,8 +75,9 @@ x_train, x_test, y_train, y_test = train_test_split(
     stratify=y,
 )
 
-sm = SMOTE(random_state=seed, sampling_strategy=0.3)
-x_train, y_train = sm.fit_resample(x_train, y_train)
+if use_smote:
+    sm = SMOTE(random_state=seed, sampling_strategy=smote_ratio)
+    x_train, y_train = sm.fit_resample(x_train, y_train)
 
 def fit_xgboost(x_tr, y_tr):
     model = XGBClassifier(
@@ -85,11 +92,14 @@ def fit_xgboost(x_tr, y_tr):
 
 model_dict = {
     "Logistic Regression": lambda x_tr, y_tr: Pipeline(
-        [("scale", StandardScaler()), ("model", LogisticRegression(class_weight="balanced", max_iter=1000, random_state=seed))]
+        [("scale", StandardScaler()), ("model", LogisticRegression(class_weight="balanced" if use_class_weight else None, max_iter=1000, random_state=seed))]
     ).fit(x_tr, y_tr),
-    "Random Forest": lambda x_tr, y_tr: RandomForestClassifier(class_weight=None, n_estimators=250, random_state=seed).fit(
-        x_tr, y_tr
-    ),
+    "Random Forest": lambda x_tr, y_tr: RandomForestClassifier(
+        class_weight="balanced" if use_class_weight else None,
+        n_estimators=250,
+        min_samples_leaf=5,
+        random_state=seed,
+    ).fit(x_tr, y_tr),
     "Naive Bayes": lambda x_tr, y_tr: GaussianNB().fit(x_tr, y_tr),
     "XGBoost": fit_xgboost,
 }
@@ -100,6 +110,13 @@ conf_mats = {}
 for name in selected_models:
     model = model_dict[name](x_train, y_train)
     predictions = model.predict(x_test)
+
+    if y.nunique(dropna=True) <= 2 and hasattr(model, "predict_proba"):
+        class_labels = list(model.classes_)
+        positive_label = max(class_labels)
+        positive_index = class_labels.index(positive_label)
+        probabilities = model.predict_proba(x_test)[:, positive_index]
+        predictions = np.where(probabilities >= positive_threshold, positive_label, min(class_labels))
     metrics = classification_metrics(y_test, predictions, is_binary_target=(y.nunique(dropna=True) <= 2))
 
     labels = metrics["labels"]
