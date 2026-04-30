@@ -1,4 +1,3 @@
-import pandas as pd
 import streamlit as st
 
 from app_core.data_functions import apply_stroke_preprocessing

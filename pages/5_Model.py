@@ -45,7 +45,7 @@ selected_models = st.multiselect(
 )
 
 test_size = st.slider("Test Size", 0.1, 0.5, 0.3, 0.05)
-seed = st.session_state.get("seed", 42)
+seed = st.session_state.get("seed", 67)
 
 use_smote = st.checkbox("Apply SMOTE", value=False)
 

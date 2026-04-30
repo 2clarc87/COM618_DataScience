@@ -1,24 +1,14 @@
 import io
-
-import numpy as np
+import random
 import pandas as pd
-from sklearn.cluster import KMeans
-from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.impute import SimpleImputer
-from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import (
     accuracy_score,
     confusion_matrix,
     f1_score,
-    mean_squared_error,
     precision_score,
-    r2_score,
     recall_score,
 )
-from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
 
 MISSING_MARKERS = ["", " ", "NA", "N/A", "na", "n/a", "null", "NULL", "?", "Unknown"]
 
@@ -55,16 +45,17 @@ def apply_stroke_preprocessing(df):
     if "bmi" in preprocessed.columns:
         preprocessed = preprocessed.dropna(subset=["bmi"])
 
+    # -- Binary --
     binary_mappings = {
         "gender": {"Female": 0, "Male": 1},
         "ever_married": {"No": 0, "Yes": 1},
         "Residence_type": {"Rural": 0, "Urban": 1},
     }
-
     for column, mapping in binary_mappings.items():
         if column in preprocessed.columns:
             preprocessed[column] = preprocessed[column].map(mapping)
 
+    # -- One Hot Encoding --
     one_hot_columns = [
         column
         for column in ["work_type", "smoking_status"]
@@ -78,139 +69,12 @@ def apply_stroke_preprocessing(df):
             dtype=int,
         )
 
+    # -- Bool --
     bool_columns = preprocessed.select_dtypes(include="bool").columns
     if len(bool_columns) > 0:
         preprocessed[bool_columns] = preprocessed[bool_columns].astype(int)
 
     return preprocessed
-
-
-def build_feature_preprocessor(X):
-    num_cols = X.select_dtypes(include=[np.number]).columns.tolist()
-    cat_cols = [col for col in X.columns if col not in num_cols]
-
-    num_pipe = Pipeline(
-        steps=[
-            ("imputer", SimpleImputer(strategy="median")),
-            ("scaler", StandardScaler()),
-        ]
-    )
-    cat_pipe = Pipeline(
-        steps=[
-            ("imputer", SimpleImputer(strategy="most_frequent")),
-            ("onehot", OneHotEncoder(handle_unknown="ignore")),
-        ]
-    )
-
-    return ColumnTransformer(
-        transformers=[
-            ("num", num_pipe, num_cols),
-            ("cat", cat_pipe, cat_cols),
-        ]
-    )
-
-
-def run_kmeans(df, feature_cols, n_clusters):
-    X = df[feature_cols].copy()
-    preprocessor = build_feature_preprocessor(X)
-    X_encoded = preprocessor.fit_transform(X)
-
-    model = KMeans(n_clusters=n_clusters, random_state=67, n_init=10)
-    cluster_labels = model.fit_predict(X_encoded)
-
-    output = df.copy()
-    output["cluster"] = cluster_labels
-    return output
-
-
-def prepare_supervised_data(df, target_col):
-    X = df.drop(columns=[target_col]).copy()
-    y = df[target_col].copy()
-
-    valid_idx = y.notna()
-    return X.loc[valid_idx], y.loc[valid_idx]
-
-
-def choose_model(model_name, y):
-    is_binary_target = y.nunique(dropna=True) <= 2
-    is_numeric_target = pd.api.types.is_numeric_dtype(y)
-
-    if model_name == "Linear Regression":
-        return LinearRegression(), "regression", is_binary_target
-
-    if model_name == "Logistic Regression":
-        return LogisticRegression(max_iter=1000), "classification", is_binary_target
-
-    if model_name == "Random Forest":
-        if is_binary_target or (not is_numeric_target):
-            return RandomForestClassifier(n_estimators=350, random_state=67), "classification", is_binary_target
-        return RandomForestRegressor(n_estimators=350, random_state=67), "regression", is_binary_target
-
-    if model_name == "XGBoost":
-        try:
-            from xgboost import XGBClassifier, XGBRegressor
-
-            if is_binary_target or (not is_numeric_target):
-                return (
-                    XGBClassifier(
-                        n_estimators=350,
-                        learning_rate=0.05,
-                        max_depth=5,
-                        random_state=67,
-                        eval_metric="logloss",
-                    ),
-                    "classification",
-                    is_binary_target,
-                )
-            return (
-                XGBRegressor(
-                    n_estimators=350,
-                    learning_rate=0.05,
-                    max_depth=5,
-                    random_state=67,
-                ),
-                "regression",
-                is_binary_target,
-            )
-        except Exception:
-            if is_binary_target or (not is_numeric_target):
-                return RandomForestClassifier(n_estimators=350, random_state=67), "classification", is_binary_target
-            return RandomForestRegressor(n_estimators=350, random_state=67), "regression", is_binary_target
-
-    raise ValueError(f"Unsupported model: {model_name}")
-
-
-def train_supervised_model(df, target_col, model_name, test_size_pct):
-    X, y = prepare_supervised_data(df, target_col)
-    if X.empty:
-        raise ValueError("No valid rows left after dropping missing target values.")
-
-    stratify = y if y.nunique(dropna=True) <= 2 else None
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=test_size_pct / 100,
-        random_state=67,
-        stratify=stratify,
-    )
-
-    estimator, model_type, is_binary_target = choose_model(model_name, y)
-    pipe = Pipeline(
-        steps=[
-            ("preprocess", build_feature_preprocessor(X)),
-            ("model", estimator),
-        ]
-    )
-
-    pipe.fit(X_train, y_train)
-    preds = pipe.predict(X_test)
-
-    return {
-        "preds": preds,
-        "y_test": y_test,
-        "model_type": model_type,
-        "is_binary_target": is_binary_target,
-    }
 
 
 def classification_metrics(y_test, preds, is_binary_target):
@@ -237,9 +101,8 @@ def classification_metrics(y_test, preds, is_binary_target):
         "pred_eval": pred_eval,
     }
 
-
-def regression_metrics(y_test, preds):
-    return {
-        "mse": mean_squared_error(y_test, preds),
-        "r2": r2_score(y_test, preds),
-    }
+def random_colour():
+    r = random.randint(60, 200)
+    g = random.randint(60, 200)
+    b = random.randint(60, 200)
+    return "#{:02x}{:02x}{:02x}".format(r, g, b)

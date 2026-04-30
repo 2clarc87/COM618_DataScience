@@ -2,15 +2,12 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from app_core.data_functions import duplicate_summary, missing_summary
+from app_core.data_functions import duplicate_summary, missing_summary, random_colour
 
 
 def render_missing_values(df):
     summary = missing_summary(df)
-
-
-    fig = px.bar(summary, y="Missing Count", title="Missing Values by Column",
-                 labels={"index": "Columns"})
+    fig = px.bar(summary, y="Missing Count", title="Missing Values by Column", labels={"index": "Columns"})
     st.plotly_chart(fig, use_container_width=True)
     st.dataframe(summary)
 
@@ -24,8 +21,7 @@ def render_column_insights(df):
     unique_counts = df.nunique(dropna=True).sort_values(ascending=False).reset_index()
     unique_counts.columns = ["Column", "Unique Count"]
 
-    fig = px.bar(unique_counts, x="Column", y="Unique Count",
-                 title="Number of Unique Values by Column")
+    fig = px.bar(unique_counts, x="Column", y="Unique Count", title="Number of Unique Values by Column")
     st.plotly_chart(fig, use_container_width=True)
 
     summary_rows = []
@@ -51,12 +47,14 @@ def render_column_insights(df):
 
 def render_graphs(df, cols):
     for i, col in enumerate(cols):
-        fig = px.histogram(df, x=col, nbins=40, title=f"Distribution: {col}")
-        if i % 2 == 0:
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.plotly_chart(fig, use_container_width=True)
-
+        fig = px.histogram(
+            df,
+            x=col,
+            nbins=40,
+            title=f"Distribution: {col}",
+            color_discrete_sequence=[random_colour()]
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
 # -----------------------------------------------------------------------------
 

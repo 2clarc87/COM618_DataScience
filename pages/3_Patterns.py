@@ -2,6 +2,9 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from app_core.data_functions import random_colour
+
+# -----------------------------------------------------------------------------
 
 st.title("Patterns")
 
@@ -36,7 +39,6 @@ if not age_df.empty:
         .reset_index(name="Stroke Rate (%)")
         .dropna()
     )
-
     fig = px.line(
         age_rate,
         x="age_group",
@@ -45,7 +47,7 @@ if not age_df.empty:
         title="Stroke Rate (%) by Age Group",
         labels={"age_group": "Age Group"},
     )
-    fig.update_traces(line_color="#F28E2B")
+    fig.update_traces(line_color=random_colour())
     st.plotly_chart(fig, use_container_width=True)
 
 # -----------------------------------------------------------------------------
@@ -68,7 +70,7 @@ if risk_cols:
             y="Stroke Rate (%)",
             color="State",
             barmode="group",
-            title="Stroke Rate by Risk Factor State",
+            title="Stroke Rate by Risk Factor State"
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -91,7 +93,7 @@ if "work_type" in raw_df.columns:
         x="work_type",
         y="Stroke Rate (%)",
         title="Stroke Rate (%) by Work Type",
-        color_discrete_sequence=["#59A14F"],
+        color_discrete_sequence=[random_colour()],
     )
     fig.update_xaxes(tickangle=25)
     st.plotly_chart(fig, use_container_width=True)
@@ -115,7 +117,7 @@ if "smoking_status" in raw_df.columns:
         x="smoking_status",
         y="Stroke Rate (%)",
         title="Stroke Rate (%) by Smoking Status",
-        color_discrete_sequence=["#76B7B2"],
+        color_discrete_sequence=[random_colour()],
     )
     fig.update_xaxes(tickangle=25)
     st.plotly_chart(fig, use_container_width=True)
@@ -173,6 +175,6 @@ if "stroke" in numeric_df.columns and numeric_df.shape[1] > 2:
         y="Feature",
         orientation="h",
         title="Feature Correlation Coefficient",
-        color_discrete_sequence=["#EDC948"],
+        color_discrete_sequence=[random_colour()],
     )
     st.plotly_chart(fig, use_container_width=True)
