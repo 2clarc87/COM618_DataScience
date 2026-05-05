@@ -79,7 +79,7 @@ x_train, x_test, y_train, y_test = train_test_split(
 )
 
 if use_smote:
-    sm = SMOTE(random_state=seed, sampling_strategy=0.5)
+    sm = SMOTE(random_state=seed, sampling_strategy=1.0)
     x_train, y_train = sm.fit_resample(x_train, y_train)
 
 # -----------------------------------------------------------------------------
@@ -148,19 +148,15 @@ st.dataframe(
     use_container_width=True,
 )
 
-col1, col2 = st.columns(2)
+st.subheader("Accuracy Comparison")
+fig_acc = px.bar(results_df, x="Model", y="Accuracy", text="Accuracy")
+fig_acc.update_traces(texttemplate="%{text:.4f}")
+st.plotly_chart(fig_acc, use_container_width=True)
 
-with col1:
-    st.subheader("Accuracy Comparison")
-    fig_acc = px.bar(results_df, x="Model", y="Accuracy", text="Accuracy")
-    fig_acc.update_traces(texttemplate="%{text:.4f}")
-    st.plotly_chart(fig_acc, use_container_width=True)
-
-with col2:
-    st.subheader("F1 Score Comparison")
-    fig_f1 = px.bar(results_df, x="Model", y="F1 Score", text="F1 Score")
-    fig_f1.update_traces(texttemplate="%{text:.4f}")
-    st.plotly_chart(fig_f1, use_container_width=True)
+st.subheader("F1 Score Comparison")
+fig_f1 = px.bar(results_df, x="Model", y="F1 Score", text="F1 Score")
+fig_f1.update_traces(texttemplate="%{text:.4f}")
+st.plotly_chart(fig_f1, use_container_width=True)
 
 st.subheader("Confusion Matrices")
 

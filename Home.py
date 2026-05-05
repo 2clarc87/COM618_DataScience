@@ -4,7 +4,7 @@ from app_core.data_functions import load_data
 
 st.set_page_config(page_title="Health Care Data Science", layout="wide")
 
-st.title("Health Care Data Science")
+st.title("COM618 - Stroke Data Science")
 
 uploaded = st.file_uploader("", type=["csv"])
 
